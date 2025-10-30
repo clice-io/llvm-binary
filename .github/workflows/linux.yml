@@ -13,7 +13,7 @@ jobs:
           - build_type: debug
             lto: "n"
           - build_type: releasedbg
-            lto: "n"
+            lto: "y"
           - build_type: release
             lto: "y"
 
