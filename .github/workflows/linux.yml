@@ -40,6 +40,24 @@ jobs:
           xmake-version: '2.9.9'
           actions-cache-folder: '.xmake-cache'
 
+      - name: Increase Swap Space
+        run: |
+          echo "===== Initial Status ====="
+          sudo swapon --show
+          free -h
+
+          echo "===== Creating Swap File ====="
+          sudo swapoff -a
+          sudo fallocate -l 32G /swapfile
+          sudo chmod 600 /swapfile
+          sudo mkswap /swapfile
+          sudo swapon /swapfile
+
+          echo "===== Final Status ====="
+          sudo swapon --show
+          free -h
+          df -h
+
       - name: Package
         run: |
           xmake config --yes --verbose --toolchain=clang-20 --mode=${{ matrix.build_type }} --policies=build.optimization.lto:${{ matrix.lto }}

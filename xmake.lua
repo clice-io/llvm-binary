@@ -15,11 +15,12 @@ local sparse_checkout_list = {
     "clang",
     "clang-tools-extra",
 }
--- Enable asan
-if is_mode("debug") then
-    table.insert(sparse_checkout_list, "runtimes")
-    table.insert(sparse_checkout_list, "compiler-rt")
-end
+
+-- TODO: If we need compiler-rt builtin-headers, then we need to enable them.
+-- if is_mode("debug") then
+--     table.insert(sparse_checkout_list, "runtimes")
+--     table.insert(sparse_checkout_list, "compiler-rt")
+-- end
 
 package("llvm")
     add_urls("https://github.com/llvm/llvm-project.git", {alias = "git", includes = sparse_checkout_list})
@@ -86,10 +87,15 @@ package("llvm")
             "-DLLVM_LINK_LLVM_DYLIB=OFF",
             "-DLLVM_ENABLE_RTTI=OFF",
 
-            -- "-DLLVM_ENABLE_PROJECTS=clang",
             "-DLLVM_PARALLEL_LINK_JOBS=1",
+
             -- Build job and link job together will oom
             "-DCMAKE_JOB_POOL_LINK=console",
+
+            "-DLLVM_ENABLE_PROJECTS=clang;clang-tools-extra",
+
+            -- Only build native target
+            "-DLLVM_TARGETS_TO_BUILD=Native"
         }
 
         local build_type = {
@@ -100,30 +106,21 @@ package("llvm")
         table.insert(configs, "-DCMAKE_BUILD_TYPE=" .. (build_type[package:config("mode")]))
         table.insert(configs, "-DBUILD_SHARED_LIBS=" .. (package:config("shared") and "ON" or "OFF"))
         table.insert(configs, "-DLLVM_ENABLE_LTO=" .. (package:config("lto") and "ON" or "OFF"))
-        if package:config("lto") then
-            if package:is_plat("linux", "macosx") then
-                table.insert(configs, "-DLLVM_USE_LINKER=lld")
-            end
+
+        if package:config("mode") == "debug" then
+            table.insert(configs, "-DLLVM_USE_SANITIZER=Address")
         end
+
         if package:is_plat("windows") then
             table.insert(configs, "-DCMAKE_C_COMPILER=clang-cl")
             table.insert(configs, "-DCMAKE_CXX_COMPILER=clang-cl")
-        end
-        if package:config("mode") == "debug" then
-            table.insert(configs, "-DLLVM_ENABLE_PROJECTS=clang;clang-tools-extra")
-            table.insert(configs, "-DLLVM_ENABLE_RUNTIMES=compiler-rt")
-            table.insert(configs, "-DLLVM_USE_SANITIZER=Address")
-        else
-            table.insert(configs, "-DLLVM_ENABLE_PROJECTS=clang;clang-tools-extra")
-        end
-
-        if package:is_plat("macosx") then
-            table.insert(configs, "-DLLVM_ENABLE_LIBCXX=ON")
-            table.insert(configs, "-DLLVM_TARGETS_TO_BUILD=AArch64")
+        elseif package:is_plat("linux") then
+            table.insert(configs, "-DLLVM_USE_LINKER=lld")
+        elseif package:is_plat("macosx") then
             table.insert(configs, "-DCMAKE_OSX_ARCHITECTURES=arm64")
             table.insert(configs, "-DCMAKE_LIBTOOL=/opt/homebrew/opt/llvm@20/bin/llvm-libtool-darwin")
-        else
-            table.insert(configs, "-DLLVM_TARGETS_TO_BUILD=X86")
+            table.insert(configs, "-DLLVM_USE_LINKER=lld")
+            table.insert(configs, "-DLLVM_ENABLE_LIBCXX=ON")
         end
 
         local opt = {}
