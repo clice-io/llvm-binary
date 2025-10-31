@@ -12,8 +12,8 @@ jobs:
         include:
           - build_type: releasedbg
             runtimes: MD
-            lto: "y"
-          - build_type: release
+            lto: "n"
+          - build_type: releasedbg
             runtimes: MT
             lto: "y"
 

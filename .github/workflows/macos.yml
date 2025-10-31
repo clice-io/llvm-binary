@@ -13,8 +13,8 @@ jobs:
           - build_type: debug
             lto: "n"
           - build_type: releasedbg
-            lto: "y"
-          - build_type: release
+            lto: "n"
+          - build_type: releasedbg
             lto: "y"
 
     concurrency:

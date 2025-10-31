@@ -74,6 +74,7 @@ package("llvm")
             "-DLLVM_INCLUDE_BENCHMARKS=OFF",
 
             -- "-DCLANG_BUILD_TOOLS=OFF",
+            "-DLLVM_INCLUDE_TOOLS=OFF",
             "-DLLVM_BUILD_TOOLS=OFF",
             "-DLLVM_BUILD_UTILS=OFF",
             "-DCLANG_ENABLE_CLANGD=OFF",
@@ -86,6 +87,7 @@ package("llvm")
             "-DLLVM_ENABLE_RTTI=OFF",
 
             -- "-DLLVM_ENABLE_PROJECTS=clang",
+            "-DLLVM_PARALLEL_LINK_JOBS=1",
         }
 
         local build_type = {
@@ -105,7 +107,7 @@ package("llvm")
             table.insert(configs, "-DCMAKE_C_COMPILER=clang-cl")
             table.insert(configs, "-DCMAKE_CXX_COMPILER=clang-cl")
         end
-        if package:is_debug() then
+        if package:config("mode") == "debug" then
             table.insert(configs, "-DLLVM_ENABLE_PROJECTS=clang;clang-tools-extra")
             table.insert(configs, "-DLLVM_ENABLE_RUNTIMES=compiler-rt")
             table.insert(configs, "-DLLVM_USE_SANITIZER=Address")
