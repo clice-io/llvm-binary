@@ -74,7 +74,7 @@ package("llvm")
             "-DLLVM_INCLUDE_BENCHMARKS=OFF",
 
             -- "-DCLANG_BUILD_TOOLS=OFF",
-            "-DLLVM_INCLUDE_TOOLS=OFF",
+            -- "-DLLVM_INCLUDE_TOOLS=OFF",
             "-DLLVM_BUILD_TOOLS=OFF",
             "-DLLVM_BUILD_UTILS=OFF",
             "-DCLANG_ENABLE_CLANGD=OFF",
