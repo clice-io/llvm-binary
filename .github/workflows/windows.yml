@@ -2,7 +2,7 @@ name: windows
 
 on:
   pull_request:
-    branches: [ main ]
+    branches: [main]
 
 jobs:
   build:
@@ -10,12 +10,12 @@ jobs:
     strategy:
       matrix:
         include:
-          - build_type: release
+          - build_type: releasedbg
             runtimes: MD
             lto: "n"
-          - build_type: release
-            runtimes: MT
-            lto: "y"
+          # - build_type: releasedbg
+          #   runtimes: MT
+          #   lto: "y"
 
     concurrency:
       group: ${{ github.ref }}-${{ github.base_ref }}-${{ github.head_ref }}-windows-${{ matrix.build_type }}-${{ matrix.lto }}
@@ -28,12 +28,12 @@ jobs:
       - name: Setup xmake
         uses: xmake-io/github-action-setup-xmake@v1
         with:
-          xmake-version: '2.9.9'
-          actions-cache-folder: '.xmake-cache'
+          xmake-version: "2.9.9"
+          actions-cache-folder: ".xmake-cache"
 
       - name: Package
         run: |
-          xmake config --yes --verbose --runtimes=${{ matrix.runtimes }} --policies=build.optimization.lto:${{ matrix.lto }}
+          xmake config --yes --verbose --mode=${{ matrix.build_type }} --runtimes=${{ matrix.runtimes }} --policies=build.optimization.lto:${{ matrix.lto }}
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4

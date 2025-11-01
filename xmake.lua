@@ -3,6 +3,7 @@ set_policy("compatibility.version", "3.0")
 add_requires("llvm", {
     system = false,
     configs = {
+        mode = get_config("mode"),
         debug = is_mode("debug"),
         shared = is_mode("debug") and not is_plat("windows"),
     },
@@ -14,21 +15,20 @@ local sparse_checkout_list = {
     "clang",
     "clang-tools-extra",
 }
--- Enable asan
-if is_mode("debug") then
-    table.insert(sparse_checkout_list, "runtimes")
-    table.insert(sparse_checkout_list, "compiler-rt")
-end
+
+-- TODO: If we need compiler-rt builtin-headers, then we need to enable them.
+-- if is_mode("debug") then
+--     table.insert(sparse_checkout_list, "runtimes")
+--     table.insert(sparse_checkout_list, "compiler-rt")
+-- end
 
 package("llvm")
-    set_urls("https://github.com/llvm/llvm-project/releases/download/llvmorg-$(version)/llvm-project-$(version).src.tar.xz",
-             "https://github.com/llvm/llvm-project.git", {includes = sparse_checkout_list})
+    add_urls("https://github.com/llvm/llvm-project.git", {alias = "git", includes = sparse_checkout_list})
 
-    add_versions("20.1.5", "a069565cd1c6aee48ee0f36de300635b5781f355d7b3c96a28062d50d575fa3e")
+    add_versions("git:21.1.4", "llvmorg-21.1.4")
+    add_versions("git:20.1.5", "llvmorg-20.1.5")
 
-    if is_plat("windows") then
-        add_configs("debug", {description = "Enable debug symbols.", default = false, type = "boolean", readonly = true})
-    end
+    add_configs("mode", {description = "Build type", default = "releasedbg", type = "string", values = {"debug", "release", "releasedbg"}})
 
     if is_plat("windows", "mingw") then
         add_syslinks("version", "ntdll")
@@ -75,6 +75,7 @@ package("llvm")
             "-DLLVM_INCLUDE_BENCHMARKS=OFF",
 
             -- "-DCLANG_BUILD_TOOLS=OFF",
+            -- "-DLLVM_INCLUDE_TOOLS=OFF",
             "-DLLVM_BUILD_TOOLS=OFF",
             "-DLLVM_BUILD_UTILS=OFF",
             "-DCLANG_ENABLE_CLANGD=OFF",
@@ -86,34 +87,41 @@ package("llvm")
             "-DLLVM_LINK_LLVM_DYLIB=OFF",
             "-DLLVM_ENABLE_RTTI=OFF",
 
-            -- "-DLLVM_ENABLE_PROJECTS=clang",
+            "-DLLVM_PARALLEL_LINK_JOBS=1",
+
+            -- Build job and link job together will oom
+            "-DCMAKE_JOB_POOL_LINK=console",
+
+            "-DLLVM_ENABLE_PROJECTS=clang;clang-tools-extra",
+
+            -- Only build native target
+            "-DLLVM_TARGETS_TO_BUILD=Native"
         }
-        table.insert(configs, "-DCMAKE_BUILD_TYPE=" .. (package:is_debug() and "Debug" or "Release"))
+
+        local build_type = {
+            ["debug"] = "Debug",
+            ["release"] = "Release",
+            ["releasedbg"] = "RelWithDebInfo",
+        }
+        table.insert(configs, "-DCMAKE_BUILD_TYPE=" .. (build_type[package:config("mode")]))
         table.insert(configs, "-DBUILD_SHARED_LIBS=" .. (package:config("shared") and "ON" or "OFF"))
         table.insert(configs, "-DLLVM_ENABLE_LTO=" .. (package:config("lto") and "ON" or "OFF"))
-        if package:config("lto") then
-            if package:is_plat("linux", "macosx") then
-                table.insert(configs, "-DLLVM_USE_LINKER=lld")
-            end
+
+        if package:config("mode") == "debug" then
+            table.insert(configs, "-DLLVM_USE_SANITIZER=Address")
         end
+
         if package:is_plat("windows") then
             table.insert(configs, "-DCMAKE_C_COMPILER=clang-cl")
             table.insert(configs, "-DCMAKE_CXX_COMPILER=clang-cl")
-        end
-        if package:is_debug() then
-            table.insert(configs, "-DLLVM_ENABLE_PROJECTS=clang;clang-tools-extra")
-            table.insert(configs, "-DLLVM_ENABLE_RUNTIMES=compiler-rt")
-            table.insert(configs, "-DLLVM_USE_SANITIZER=Address")
-        else
-            table.insert(configs, "-DLLVM_ENABLE_PROJECTS=clang;clang-tools-extra")
-        end
-
-        if package:is_plat("macosx") then
-            table.insert(configs, "-DLLVM_TARGETS_TO_BUILD=AArch64")
+        elseif package:is_plat("linux") then
+            table.insert(configs, "-DLLVM_USE_LINKER=lld")
+            -- table.insert(configs, "-DLLVM_USE_SPLIT_DWARF=ON")
+        elseif package:is_plat("macosx") then
             table.insert(configs, "-DCMAKE_OSX_ARCHITECTURES=arm64")
             table.insert(configs, "-DCMAKE_LIBTOOL=/opt/homebrew/opt/llvm@20/bin/llvm-libtool-darwin")
-        else
-            table.insert(configs, "-DLLVM_TARGETS_TO_BUILD=X86")
+            table.insert(configs, "-DLLVM_USE_LINKER=lld")
+            table.insert(configs, "-DLLVM_ENABLE_LIBCXX=ON")
         end
 
         local opt = {}
@@ -176,7 +184,7 @@ package("llvm")
             package:arch(),
             package:plat(),
             abi,
-            package:is_debug() and "debug" or "release",
+            package:config("mode"),
         }, "-")
 
         if package:config("lto") then

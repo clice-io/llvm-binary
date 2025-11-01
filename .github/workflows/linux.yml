@@ -2,7 +2,7 @@ name: linux
 
 on:
   pull_request:
-    branches: [ main ]
+    branches: [main]
 
 jobs:
   build:
@@ -12,10 +12,10 @@ jobs:
         include:
           - build_type: debug
             lto: "n"
-          - build_type: release
+          - build_type: releasedbg
             lto: "n"
-          - build_type: release
-            lto: "y"
+          # - build_type: releasedbg
+          #   lto: "y"
 
     concurrency:
       group: ${{ github.ref }}-${{ github.base_ref }}-${{ github.head_ref }}-linux-${{ matrix.build_type }}-${{ matrix.lto }}
@@ -37,8 +37,26 @@ jobs:
       - name: Setup xmake
         uses: xmake-io/github-action-setup-xmake@v1
         with:
-          xmake-version: '2.9.9'
-          actions-cache-folder: '.xmake-cache'
+          xmake-version: "2.9.9"
+          actions-cache-folder: ".xmake-cache"
+
+      - name: Increase Swap Space
+        run: |
+          echo "===== Initial Status ====="
+          sudo swapon --show
+          free -h
+
+          echo "===== Creating Swap File ====="
+          sudo swapoff -a
+          sudo fallocate -l 16G /mnt/swapfile
+          sudo chmod 600 /mnt/swapfile
+          sudo mkswap /mnt/swapfile
+          sudo swapon /mnt/swapfile
+
+          echo "===== Final Status ====="
+          sudo swapon --show
+          free -h
+          df -h
 
       - name: Package
         run: |
