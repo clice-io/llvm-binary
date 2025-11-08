@@ -14,6 +14,7 @@ local sparse_checkout_list = {
     "llvm",
     "clang",
     "clang-tools-extra",
+    "third-party",
 }
 
 -- TODO: If we need compiler-rt builtin-headers, then we need to enable them.
@@ -71,9 +72,6 @@ package("llvm")
 
         io.replace("llvm/tools/CMakeLists.txt", "add_llvm_tool_subdirectory(lto)", "", {plain = true})
         io.replace("llvm/tools/CMakeLists.txt", "add_llvm_implicit_projects()", "", {plain = true})
-
-        -- idk
-        io.replace("llvm/lib/Support/SipHash.cpp", [[#include "siphash/SipHash.h"]], "", {plain = true})
 
         local configs = {
             "-DLLVM_ENABLE_ZLIB=OFF",
