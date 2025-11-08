@@ -25,7 +25,7 @@ local sparse_checkout_list = {
 package("llvm")
     add_urls("https://github.com/llvm/llvm-project.git", {alias = "git", includes = sparse_checkout_list})
 
-    add_versions("git:21.1.4", "llvmorg-21.1.4")
+    add_versions("git:21.1.4", "222fc11f2b8f25f6a0f4976272ef1bb7bf49521d")
     add_versions("git:20.1.5", "llvmorg-20.1.5")
 
     add_configs("mode", {description = "Build type", default = "releasedbg", type = "string", values = {"debug", "release", "releasedbg"}})
@@ -35,10 +35,6 @@ package("llvm")
     end
 
     add_deps("cmake", "ninja", "python 3.x", {kind = "binary"})
-
-    if is_host("windows") then
-        set_policy("platform.longpaths", true)
-    end
 
     on_install(function (package)
         if not package:config("shared") then
@@ -67,6 +63,10 @@ package("llvm")
         end
         io.replace("clang-tools-extra/CMakeLists.txt", "add_subdirectory(modularize)", "", {plain = true})
         io.replace("clang-tools-extra/CMakeLists.txt", "add_subdirectory(pp-trace)", "", {plain = true})
+        io.replace("clang-tools-extra/CMakeLists.txt", "add_subdirectory(tool-template)", "", {plain = true})
+
+        io.replace("llvm/lib/CMakeLists.txt", "add_subdirectory(LTO)", "", {plain = true})
+        io.replace("llvm/lib/CMakeLists.txt", "add_subdirectory(Remarks)", "", {plain = true})
 
         local configs = {
             "-DLLVM_ENABLE_ZLIB=OFF",
@@ -88,14 +88,16 @@ package("llvm")
             "-DLLVM_INCLUDE_DOCS=OFF",
             "-DLLVM_BUILD_UTILS=OFF",
             "-DLLVM_BUILD_TOOLS=OFF",
+            "-DLLVM_INCLUDE_TOOLS=OFF",
             "-DCLANG_BUILD_TOOLS=OFF",
             "-DCLANG_INCLUDE_DOCS=OFF",
             "-DCLANG_INCLUDE_TESTS=OFF",
             "-DCLANG_TOOL_CLANG_IMPORT_TEST_BUILD=OFF",
             "-DCLANG_TOOL_CLANG_LINKER_WRAPPER_BUILD=OFF",
             "-DCLANG_TOOL_C_INDEX_TEST_BUILD=OFF",
-            "-DCLANG_TOOL_LIBCLANG_BUILD=O",
+            "-DCLANG_TOOL_LIBCLANG_BUILD=OFF",
             "-DCLANG_ENABLE_CLANGD=OFF",
+            "-DLLVM_BUILD_LLVM_C_DYLIB=OFF",
 
             "-DLLVM_LINK_LLVM_DYLIB=OFF",
             "-DLLVM_ENABLE_RTTI=OFF",
@@ -140,7 +142,6 @@ package("llvm")
         end
 
         local opt = {}
-        opt.jobs = "4"
         opt.target = {
             "LLVMSupport",
             "LLVMFrontendOpenMP",
@@ -211,7 +212,7 @@ package("llvm")
 
         local opt = {}
         opt.recurse = true
-        -- opt.compress = "best"
+        opt.compress = "best"
         opt.curdir = package:installdir()
 
         local archive_dirs
