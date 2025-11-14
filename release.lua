@@ -132,7 +132,7 @@ function main()
     local unused_libs
     for _, llvm_archive in ipairs(origin_files) do
         if llvm_archive:find("releasedbg") and llvm_archive:find("lto_n") then
-            unused_libs = _get_require_libs(llvm_archive)
+            unused_libs = _get_require_libs(path.absolute(llvm_archive))
             break
         end
     end
