@@ -25,6 +25,7 @@ function _get_require_libs(llvm_archive)
     -- Use --project to specify the clice project and avoid xmake finding parent directory xmake.lua
     local argv = {
         "config",
+        "--yes",
         "--clean",
         "--project=.",
         "--llvm=package/llvm",
