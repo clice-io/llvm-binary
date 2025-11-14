@@ -29,8 +29,12 @@ function _get_require_libs(llvm_archive)
         "--clean",
         "--project=.",
         "--llvm=package/llvm",
-        "--toolchain=clang",
     }
+    if is_host("linux") then
+        table.insert(argv, "--toolchain=clang-20")
+    else
+        table.insert(argv, "--toolchain=clang")
+    end
     if is_host("macosx") then
         table.insert(argv, "--sdk=/opt/homebrew/opt/llvm@20")
     end
