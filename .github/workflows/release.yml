@@ -7,7 +7,15 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        os: [windows-2025, ubuntu-24.04, macos-15]
+
+    runs-on: ${{ matrix.os }}
+
+    concurrency:
+      group: ${{ github.ref }}-${{ github.base_ref }}-${{ github.head_ref }}-${{ matrix.os }}
+      cancel-in-progress: true
 
     steps:
       - name: Checkout repository
@@ -16,8 +24,29 @@ jobs:
       - name: Setup xmake
         uses: xmake-io/github-action-setup-xmake@v1
         with:
-          xmake-version: '2.9.9'
+          xmake-version: '3.0.4'
           actions-cache-folder: '.xmake-cache'
+
+      - name: Setup llvm@20
+        if: matrix.os == 'macos-15'
+        run: |
+          brew install llvm@20
+
+      - name: Setup llvm & libstdc++ & cmake & ninja
+        if: matrix.os == 'ubuntu-24.04'
+        run: |
+          sudo apt update
+          sudo apt install -y gcc-14 g++-14 libstdc++-14-dev
+          sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-14 100
+          sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-14 100
+          sudo update-alternatives --set gcc /usr/bin/gcc-14
+          sudo update-alternatives --set g++ /usr/bin/g++-14
+
+          wget https://apt.llvm.org/llvm.sh
+          chmod +x llvm.sh
+          sudo ./llvm.sh 20 all
+
+          sudo apt install -y cmake ninja-build
 
       - name: Upload binaries
         env:
