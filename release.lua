@@ -78,10 +78,18 @@ end
 function _reduce_package_size(llvm_archive, unused_libs)
     local workdir = "build/.pack"
     os.tryrm(workdir)
+
+    local archive_name = path.filename(llvm_archive)
+    print("extract ", archive_name)
     archive.extract(llvm_archive, workdir)
 
-    for _, lib in ipairs(unused_libs) do
-        os.rm(path.join(workdir, format("lib/%s.*", lib)))
+    print("handle ", archive_name)
+    -- we use dynamic lib for debug mode, and its deps are
+    -- different with release, so skip them now.
+    if llvm_archive:find("releasedbg") then
+        for _, lib in ipairs(unused_libs) do
+            os.rm(path.join(workdir, format("lib/%s.*", lib)))
+        end
     end
 
     local opt = {}
@@ -100,8 +108,9 @@ function _reduce_package_size(llvm_archive, unused_libs)
         end
     end
 
+    print("archive ", archive_name)
     os.mkdir("build/pack")
-    local archive_file = path.absolute(path.join("build/pack", path.filename(llvm_archive)))
+    local archive_file = path.absolute(path.join("build/pack", archive_name))
     import("utils.archive").archive(archive_file, archive_dirs, opt)
     return archive_file
 end
