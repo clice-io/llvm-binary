@@ -81,7 +81,7 @@ function _reduce_package_size(llvm_archive, unused_libs)
     archive.extract(llvm_archive, workdir)
 
     for _, lib in ipairs(unused_libs) do
-        os.rm(path.join(workdir, format("lib/*%s*", lib)))
+        os.rm(path.join(workdir, format("lib/%s.*", lib)))
     end
 
     local opt = {}
